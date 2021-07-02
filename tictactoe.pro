@@ -1,3 +1,5 @@
+:- dynamic place/2.
+
 % Cell facts - for later user input validation
 cell(r0,c0).
 cell(r0,c1).
@@ -17,17 +19,21 @@ line((r2, c0), (r1, c1), (r0,c2)).
 
 % Initial condition
 % +--+--+--+
-% |P1|  |  |
+% |P_|  |  |
 % |--+--+--|
-% |  |P1|  |
+% |P2|P1|  |
 % +--+--+--+
-% |  |  |P1|
+% |P2|  |P1|
 % +--+--+--+
 place(p1, (r1,c1)).
 place(p2, (r1,c0)).
 place(p1, (r2,c2)).
 place(p2, (r2,c0)).
-place(p1, (r0,c0)).
+%% Copy and PASTE one of these when prompted: "Enter your command:""
+%% Don't forget the awesome PERIOD.
+% place(p1, (r0,c0)).
+% place(p1, (r0,c2)).
+% place(p2, (r0,c0)).
 
 % Query for the winner
 who_wins(P) :-
@@ -38,9 +44,19 @@ who_wins(P) :-
     line(C0, C1, C2).
 
 declare_winner([]) :- writeln('No winner').
-declare_winner(Winner) :- format('Winner: ~w', Winner).
+declare_winner([Winner]) :- format('Winner: ~p ~n', Winner).
 
+loop([]) :-
+    writeln('Enter your command:'),
+    read(Line),
+    assertz(Line),
+    findall(P, who_wins(P), Winner),
+    declare_winner(Winner),
+    loop(Winner).
+
+loop([_]) :-
+    halt(0).
+    
 % Main
 :-
-    setof(P, who_wins(P), Winner),
-    declare_winner(Winner).
+    loop([]).

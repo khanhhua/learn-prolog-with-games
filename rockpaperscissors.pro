@@ -6,4 +6,5 @@ wins(rock, scissors).
 wins(paper, rock).
 wins(scissors, paper).
 
-loses(X, Y) :- wins(Y, X).
+draws(X, X) :- true.
+loses(X, Y) :- wins(Y, X), not(draws(X, Y)).
