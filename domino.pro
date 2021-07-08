@@ -51,30 +51,25 @@ line(Ts, Line) :-
 		, line_identity(Line, Identity)
 		)
 	).
-	
+
+positional_sum(L, Sum) :-
+	findall(Value * Scale, %% Projection aka Template
+		( member(Value, L)
+		, nth0(Index, L, Value)
+		, pow(100, Index, Scale)
+		), %% Composite Goal, aka Predicate
+		ScaledValue
+	),
+	sum_list(ScaledValue, Sum).
 
 line_identity(Line, LineIdentity) :-
 	maplist(identity, Line, IDs),
-	findall(Identity * Scale, %% Projection aka Template
-		( member(Identity, IDs)
-		, nth0(Index, IDs, Identity)
-		, pow(12, Index, Scale)
-		) %% Composite Goal, aka Predicate
-		, CorrelatedIDs
-	),
-	sum_list(CorrelatedIDs, LineIdentity).
+	positional_sum(IDs, LineIdentity).
 
 bag_identity(Line, BagIdentity) :-
 	maplist(identity_i, Line, IDs),
 	sort(IDs, SortedIDs),
-	findall(Identity * Scale, %% Projection aka Template
-		( member(Identity, SortedIDs)
-		, nth0(Index, SortedIDs, Identity)
-		, pow(100, Index, Scale)
-		) %% Composite Goal, aka Predicate
-		, CorrelatedIDs
-	),
-	sum_list(CorrelatedIDs, BagIdentity).
+	positional_sum(SortedIDs, BagIdentity).
 
 main :-
 	write('Find out how to form a line with (6,6), A, (2,1), B:'),nl,
