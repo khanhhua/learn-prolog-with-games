@@ -24,31 +24,31 @@ identity((X, Y), Identity) :- Identity is X * 10 + Y + 1.
 
 equal((X, Y), (Y, X)).
 
-bag_it([Last], Bag0) :- Bag0 = [Last]. %% Exhaust the pipe
+line_it([Last], Line0) :- Line0 = [Last]. %% Exhaust the pipe
 %% Permutation the domino way
 %% Stock is out-of-order
-bag_it(Stock, Bag) :-
+line_it(Stock, Line) :-
 	select(First, Stock, Rest),
-	bag_it(Rest, Bag0),
-	nth1(1, Bag0, (X0, _)),
-	last(Bag0,    (_, Y0)),
+	line_it(Rest, Line0),
+	nth1(1, Line0, (X0, _)),
+	last(Line0,    (_, Y0)),
 
 	(X1, Y1) = First,
-	( Y0 == X1, append(Bag0, [(X1, Y1)], Bag)
-	; X0 == X1, Bag = [(Y1, X1) | Bag0]
-	; X0 == Y1, Bag = [(X1, Y1) | Bag0]
-	; Y0 == Y1, append(Bag0, [(Y1, X1)], Bag)
+	( Y0 == X1, append(Line0, [(X1, Y1)], Line)
+	; X0 == X1, Line = [(Y1, X1) | Line0]
+	; X0 == Y1, Line = [(X1, Y1) | Line0]
+	; Y0 == Y1, append(Line0, [(Y1, X1)], Line)
 	; fail
 	).
 
 
-bag(Ts, Bag) :-
+line(Ts, Line) :-
 	maplist(tile, Ts),
 	maplist(identity_i, Ts, IDs),
 	all_distinct(IDs),
 	distinct(Identity,
-		( bag_it(Ts, Bag)
-		, line_identity(Bag, Identity)
+		( line_it(Ts, Line)
+		, line_identity(Line, Identity)
 		)
 	).
 	
@@ -64,8 +64,8 @@ line_identity(Line, LineIdentity) :-
 	),
 	sum_list(CorrelatedIDs, LineIdentity).
 
-bag_identity(Bag, BagIdentity) :-
-	maplist(identity_i, Bag, IDs),
+bag_identity(Line, BagIdentity) :-
+	maplist(identity_i, Line, IDs),
 	sort(IDs, SortedIDs),
 	findall(Identity * Scale, %% Projection aka Template
 		( member(Identity, SortedIDs)
@@ -78,10 +78,10 @@ bag_identity(Bag, BagIdentity) :-
 
 main :-
 	write('Find out how to form a line with (6,6), A, (2,1), B:'),nl,
-	findall([A, B, Bag], distinct(BagIdentity,
-				( bag([(6,6), A, (2,1), B], Bag)
-				, Bag = [(6,6), _, (2,1), _]
-				, bag_identity([A, B], BagIdentity)
+	findall([A, B, Line], distinct(LineIdentity,
+				( line([(6,6), A, (2,1), B], Line)
+				, Line = [(6,6), A, (2,1), B]
+				, line_identity([A, B], LineIdentity)
 				))
 			, Solutions),
 	maplist(format('Solution: A: (~w) B: (~w) Line: ~w ~n'), Solutions).
