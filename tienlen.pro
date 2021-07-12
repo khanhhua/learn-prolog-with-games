@@ -37,6 +37,102 @@ next_rank(queen, king).
 next_rank(king, ace).
 next_rank(ace, pig).
 
+value(three, 1).
+value(four,  2).
+value(five,  3).
+value(six,   4).
+value(seven, 5).
+value(eight, 6).
+value(nine,  7).
+value(ten,   8).
+value(jack,  9).
+value(queen,10).
+value(king, 11).
+value(ace,  12).
+value(pig,  13).
+
+value(heart, 400).
+value(diamond, 300).
+value(club, 200).
+value(spade, 100).
+
+value((R,S), Value) :-
+	card((R,S)),
+	value(R, RValue),
+	value(S, SValue),
+	Value is SValue + RValue.
+
+value(b(A, B, C, D), Value) :-
+	maplist(value, [A, B, C, D], CardValues),
+	sum_list(CardValues, Sum),
+	Value is Sum * 100000.
+value(c(A, B, C, D, E, F), Value) :-
+	maplist(value, [A, B, C, D, E, F], CardValues),
+	sum_list(CardValues, Sum),
+	Value is Sum * 10000.
+value(fl(Flush), Value) :-
+	maplist(value, Flush, CardValues),
+	length(Flush, Length),
+	last(Flush, Last),
+	sum_list(CardValues, Sum),
+	value(Last, ValueLead),
+	Value is Sum * Length * 1000 + ValueLead.
+value(t(A, B, C), Value) :-
+	maplist(value, [A, B, C], CardValues),
+	sum_list(CardValues, Sum),
+	Value is Sum * 100.
+value(p(A, B), Value) :-
+	maplist(value, [A, B], CardValues),
+	sum_list(CardValues, Sum),
+	Value is Sum * 10.
+value(s(A), Value) :- value(A, Value).
+value(Groups, Value) :-
+	maplist(value, Groups, GroupValues),
+	sum_list(GroupValues, Value).
+
+/* Priorities */
+heavier(b(A1,A2,A3,A4), b(B1,B2,B3,B4), HeavyGroup) :-
+	value(b(A1,A2,A3,A4), Avalue),
+	value(b(B1,B2,B3,B4), Bvalue),
+	( Avalue > Bvalue -> HeavyGroup = b(A1,A2,A3,A4)
+	; HeavyGroup = b(B1,B2,B3,B4)
+	).
+heavier(b(A1,A2,A3,A4), _, b(A1,A2,A3,A4)).
+
+heavier(c(A1,A2,A3,A4,A5,A6), c(B1,B2,B3,B4,B5,B6), HeavyGroup) :-
+	value(c(A1,A2,A3,A4,A5,A6), Avalue),
+	value(c(B1,B2,B3,B4,B5,B6), Bvalue),
+	( Avalue > Bvalue -> HeavyGroup = c(A1,A2,A3,A4,A5,A6)
+	; HeavyGroup = c(B1,B2,B3,B4,B5,B6)
+	).
+heavier(c(A1,A2,A3,A4,A5,A6), _, c(A1,A2,A3,A4,A5,A6)).
+
+heavier(t(A1,A2,A3), t(B1,B2,B3), HeavyGroup) :-
+	value(t(A1,A2,A3), Avalue),
+	value(t(B1,B2,B3), Bvalue),
+	( Avalue > Bvalue -> HeavyGroup = t(A1,A2,A3)
+	; HeavyGroup = t(B1,B2,B3)
+	).
+heavier(t(A1,A2,A3), _, t(A1,A2,A3)).
+
+heavier(p(A1,A2), p(B1,B2), HeavyGroup) :-
+	value(p(A1,A2), Avalue),
+	value(p(B1,B2), Bvalue),
+	( Avalue > Bvalue -> HeavyGroup = p(A1,A2)
+	; HeavyGroup = p(B1,B2)
+	).
+heavier(p(A1,A2), _, p(A1,A2)).
+
+heavier(s(A1), s(B1), HeavyGroup) :-
+	value(s(A1), Avalue),
+	value(s(B1), Bvalue),
+	( Avalue > Bvalue -> HeavyGroup = s(A1)
+	; HeavyGroup = s(B1)
+	).
+
+
+%% DCG Grammar for Hand Structure
+
 is_bomb(b(A, B, C, D))  -->
 	[A], [B], [C], [D],
 	{ card((R, S1)) = card(A)
@@ -228,8 +324,26 @@ hand([What | Ls]) -->
 	)
 	, hand(Ls).
 
+shuffe(Bag, Shuffled) :-
+	findall(N, (member(M, Bag), nth0(N, Bag, M)), Indices),
+	permutation(Indices, Ls),
+	findall(M, (member(I, Ls), nth0(I, Bag, M)), Shuffled).
+
+optimize(Bag, Solution) :-
+	findall(H, 
+		( order_by([desc(Value)]
+		, 	( shuffe(Bag, Shuffled)
+			, hand(H, Shuffled, [])
+			, value(H, Value)
+			) 
+		)), Solutions),
+	nth0(0, Solutions, Solution).
+
+
 main :-
-	Ls =[ (three, spade)
+	Bag =
+		[ (ace, heart)
+		, (three, spade)
 		, (four, spade)
 		, (five, spade)
 		, (six, spade)
@@ -241,8 +355,13 @@ main :-
 		, (queen, spade)
 		, (king, spade)
 		, (ace, spade)
-		, (ace, club)
+		
 		],
-	findall(H, hand(H, Ls, []), Solutions),
-	member(M, Solutions),
-	format('Solution: ~w~n', [M]).
+
+ 	findall(H
+		, optimize(Bag, H)
+		, Solutions),
+	nth0(0, Solutions, S),
+	write(S).
+
+	
