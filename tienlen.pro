@@ -1,4 +1,7 @@
 :- use_module(library(clpfd)).
+:- dynamic optimize/2.
+:- dynamic concurrent_optimize/2.
+
 %% Facts
 rank(ace).
 rank(pig).
@@ -70,10 +73,10 @@ value(c(A, B, C, D, E, F), Value) :-
 	maplist(value, [A, B, C, D, E, F], CardValues),
 	sum_list(CardValues, Sum),
 	Value is Sum * 10000.
-value(fl(Flush), Value) :-
-	maplist(value, Flush, CardValues),
-	length(Flush, Length),
-	last(Flush, Last),
+value(st(Straight), Value) :-
+	maplist(value, Straight, CardValues),
+	length(Straight, Length),
+	last(Straight, Last),
 	sum_list(CardValues, Sum),
 	value(Last, ValueLead),
 	Value is Sum * Length * 1000 + ValueLead.
@@ -169,7 +172,7 @@ is_single(s(A)) --> [A], {card(A)}.
 
 %% 3-4-5-6-7-8-9-10-J-Q-K-A
 %% A-B-C-D-E-F-G-H-I-J-K-L
-is_flush(fl(As)) -->
+is_straight(st(As)) -->
 	[A], [B], [C], [D], [E], [F], [G], [H], [I], [J], [K], [L],
 	{ card((R1, _)) = card(A)
 	, next_rank(R1, R2), next_rank(R2, R3), next_rank(R3, R4), next_rank(R4, R5)
@@ -189,7 +192,7 @@ is_flush(fl(As)) -->
 	, As = [A,B,C,D,E,F,G,H,I,J,K,L]
 	}.
 
-is_flush(fl(As)) -->
+is_straight(st(As)) -->
 	[A], [B], [C], [D], [E], [F], [G], [H], [I], [J], [K],
 	{ card((R1, _)) = card(A)
 	, next_rank(R1, R2), next_rank(R2, R3), next_rank(R3, R4), next_rank(R4, R5)
@@ -208,7 +211,7 @@ is_flush(fl(As)) -->
 	, As = [A,B,C,D,E,F,G,H,I,J,K]
 	}.
 
-is_flush(fl(As)) -->
+is_straight(st(As)) -->
 	[A], [B], [C], [D], [E], [F], [G], [H], [I], [J],
 	{ card((R1, _)) = card(A)
 	, next_rank(R1, R2), next_rank(R2, R3), next_rank(R3, R4), next_rank(R4, R5)
@@ -226,7 +229,7 @@ is_flush(fl(As)) -->
 	, As = [A,B,C,D,E,F,G,H,I,J]
 	}.
 
-is_flush(fl(As)) -->
+is_straight(st(As)) -->
 	[A], [B], [C], [D], [E], [F], [G], [H], [I],
 	{ card((R1, _)) = card(A)
 	, next_rank(R1, R2), next_rank(R2, R3), next_rank(R3, R4), next_rank(R4, R5)
@@ -242,7 +245,7 @@ is_flush(fl(As)) -->
 	, As = [A,B,C,D,E,F,G,H,I]
 	}.
 
-is_flush(fl(As)) -->
+is_straight(st(As)) -->
 	[A], [B], [C], [D], [E], [F], [G], [H],
 	{ card((R1, _)) = card(A)
 	, next_rank(R1, R2), next_rank(R2, R3), next_rank(R3, R4), next_rank(R4, R5)
@@ -257,7 +260,7 @@ is_flush(fl(As)) -->
 	, As = [A,B,C,D,E,F,G,H]
 	}.
 
-is_flush(fl(As)) -->
+is_straight(st(As)) -->
 	[A], [B], [C], [D], [E], [F], [G],
 	{ card((R1, _)) = card(A)
 	, next_rank(R1, R2), next_rank(R2, R3), next_rank(R3, R4), next_rank(R4, R5)
@@ -271,7 +274,7 @@ is_flush(fl(As)) -->
 	, As = [A,B,C,D,E,F,G]
 	}.
 
-is_flush(fl(As)) -->
+is_straight(st(As)) -->
 	[A], [B], [C], [D], [E], [F],
 	{ card((R1, _)) = card(A)
 	, next_rank(R1, R2), next_rank(R2, R3), next_rank(R3, R4), next_rank(R4, R5)
@@ -284,7 +287,7 @@ is_flush(fl(As)) -->
 	, As = [A,B,C,D,E,F]
 	}.
 
-is_flush(fl(As)) -->
+is_straight(st(As)) -->
 	[A], [B], [C], [D], [E],
 	{ card((R1, _)) = card(A)
 	, next_rank(R1, R2), next_rank(R2, R3), next_rank(R3, R4), next_rank(R4, R5)
@@ -295,7 +298,7 @@ is_flush(fl(As)) -->
 	, As = [A,B,C,D,E]
 	}.
 
-is_flush(fl(As)) -->
+is_straight(st(As)) -->
 	[A], [B], [C], [D],
 	{ card((R1, _)) = card(A)
 	, next_rank(R1, R2), next_rank(R2, R3), next_rank(R3, R4)
@@ -305,7 +308,7 @@ is_flush(fl(As)) -->
 	, As = [A,B,C,D]
 	}.
 
-is_flush(fl(As)) -->
+is_straight(st(As)) -->
 	[A], [B], [C],
 	{ card((R1, _)) = card(A), next_rank(R1, R2), next_rank(R2, R3)
 	, card((R2, _)) = card(B)
@@ -317,7 +320,7 @@ hand([]) --> [].
 hand([What | Ls]) -->
 	( is_bomb(What)
 	; is_chop(What)
-	; is_flush(What)
+	; is_straight(What)
 	; is_triple(What)
 	; is_double(What)
 	; is_single(What)
@@ -326,42 +329,46 @@ hand([What | Ls]) -->
 
 shuffe(Bag, Shuffled) :-
 	findall(N, (member(M, Bag), nth0(N, Bag, M)), Indices),
-	permutation(Indices, Ls),
+	lists:perm(Indices, Ls),
 	findall(M, (member(I, Ls), nth0(I, Bag, M)), Shuffled).
 
 optimize(Bag, Solution) :-
-	findall(H, 
-		( order_by([desc(Value)]
-		, 	( shuffe(Bag, Shuffled)
-			, hand(H, Shuffled, [])
+	findnsols(1, H, order_by([desc(Value)]
+		, 	( Bag = [Head | Rest]
+			, shuffe(Rest, Shuffled)
+			, hand(H, [Head | Shuffled], [])
 			, value(H, Value)
-			) 
-		)), Solutions),
+			)
+		), Solutions),
 	nth0(0, Solutions, Solution).
+
+concurrent_optimize(Bag, Solution) :-
+	findall([Head | Rest], select(Head, Bag, Rest), Variants),
+	format('Variants: ~w ~n', [Variants]),nl,
+	concurrent_maplist(optimize, Variants, Intermediates),
+	%% Merge and elect the best solution
+	maplist(value, Intermediates, Values),
+	max_member(Max, Values),
+	nth0(Index, Values, Max),
+	nth0(Index, Intermediates, Solution).
 
 
 main :-
 	Bag =
 		[ (ace, heart)
-		, (three, spade)
-		, (four, spade)
-		, (five, spade)
-		, (six, spade)
-		, (seven, spade)
-		, (eight, spade)
-		, (nine, spade)
-		, (ten, spade)
-		, (jack, spade)
-		, (queen, spade)
-		, (king, spade)
 		, (ace, spade)
-		
+		, (pig, spade)
+		, (pig, heart)
+		, (queen, spade)
+		, (jack, spade)
+		, (king, spade)
+		%% , (six, spade)
+		%% , (seven, spade)
+		%% , (eight, spade)
+		%% , (ten, spade)
+		%% , (ten, spade)
+		%% , (ace, spade)
 		],
 
- 	findall(H
-		, optimize(Bag, H)
-		, Solutions),
-	nth0(0, Solutions, S),
-	write(S).
-
-	
+ 	concurrent_optimize(Bag, H),
+	format('Best solution: ~w~n', [H]).
